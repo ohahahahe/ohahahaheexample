@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moral Philosophy Experiment</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 保持 Tailwind 字体一致性 */
+        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"; }
+
+        /* ------------------- 动画核心 ------------------- */
+        
+        /* 轨道和场景 */
+        #scene {
+            position: relative;
+            width: 100%;
+            height: 200px;
+            background-color: #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid #94a3b8;
+        }
+        #track {
+            position: absolute;
+            bottom: 40px;
+            left: 0;
+            width: 100%;
+            height: 10px;
+            background-color: #71717a;
+        }
+        /* 桥 */
+        #bridge {
+            position: absolute;
+            top: 0;
+            left: 30%;
+            width: 40px;
+            height: 100px;
+            background-color: #a16207;
+            border: 4px solid #713f12;
+            z-index: 10;
+        }
+        /* 胖子 (在桥上) */
+        #fat-man {
+            position: absolute;
+            top: 70px;
+            left: 28%;
+            font-size: 3rem;
+            z-index: 15;
+            transform: scaleX(-1); /* 让他面朝电车 */
+        }
+        /* 电车 */
+        #trolley {
+            position: absolute;
+            bottom: 40px;
+            left: -50px; /* 从屏幕外开始 */
+            font-size: 3rem;
+            z-index: 5;
+            /* 动画: 10秒内跑完全程 */
+            animation: moveTrolley 10s linear forwards; 
+        }
+        /* 受害者 (会动) */
+        #victims {
+            position: absolute;
+            bottom: 25px;
+            right: 15px;
+            font-size: 2.5rem;
+            color: #dc2626;
+            animation: victimsShake 0.5s infinite;
+        }
+        /* 动画定义 */
+        @keyframes moveTrolley {
+            from { left: -50px; }
+            to { left: calc(100% - 70px); } /* 撞上受害者之前停下 */
+        }
+        @keyframes victimsShake {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(1px, -1px); }
+        }
+
+        /* 倒计时条 */
+        #timer-bar-container {
+            width: 100%;
+            height: 20px;
+            background-color: #e5e7eb;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 20px;
+            border: 1px solid #d1d5db;
+        }
+        #timer-bar {
+            height: 100%;
+            width: 100%;
+            background-color: #ef4444;
+            border-radius: 10px;
+            /* 动画: 10秒内从100%到0% */
+            animation: countdownBar 10s linear forwards;
+        }
+        @keyframes countdownBar {
+            from { width: 100%; background-color: #22c55e; }
+            50%  { background-color: #f59e0b; }
+            to   { width: 0%; background-color: #ef4444; }
+        }
+
+        /* 倒计时文字 */
+        #timer-text {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #ef4444;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        /* 决策按钮 */
+        .choice-button {
+            transition: all 0.2s ease;
+            transform: scale(1);
+        }
+        .choice-button:hover {
+            transform: scale(1.05);
+        }
+        .choice-button:active {
+            transform: scale(0.95);
+        }
+
+        /* ------------------- 其他页面样式 ------------------- */
+        .loader {
+            border-top-color: #3498db;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        input[type="radio"] { display: none; }
+        input[type="radio"] + label {
+            cursor: pointer;
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            line-height: 40px;
+            text-align: center;
+            border-radius: 50%;
+            border: 2px solid #cbd5e1;
+            color: #94a3b8;
+            font-weight: bold;
+            transition: all 0.2s ease-in-out;
+        }
+        input[type="radio"]:checked + label {
+            background-color: #3b82f6;
+            border-color: #3b82f6;
+            color: white;
+            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4);
+        }
+        input[type="radio"] + label:hover {
+            border-color: #3b82f6;
+            color: #3b82f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans min-h-screen flex items-center justify-center p-4">
+
+    <div class="bg-white rounded-xl shadow-2xl p-8 max-w-2xl w-full text-center transition-all duration-500" id="experiment-container">
+
+        <!-- 欢迎页面 -->
+        <div id="welcome-screen">
+            <h1 class="text-3xl font-bold text-gray-800 mb-4">Welcome to a short philosophy study</h1>
+            <p class="text-gray-600 mb-6">
+                I chose the "Trolley Problem" for our topic because I am very interested in this classic moral dilemma. We often see movies or TV shows use similar problems to create key plot conflicts.
+            </p>
+            <p class="text-gray-600 mb-8">
+                You will watch a **timed** animation and must make an **immediate decision**. Please follow your first instinct.
+            </p>
+            <button id="start-button" class="w-full bg-blue-600 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:bg-blue-700 transition-transform transform hover:scale-105">
+                I am ready, start the experiment
+            </button>
+        </div>
+
+        <!-- 1. 抉择页面 (隐藏) -->
+        <div id="dilemma-screen" class="hidden">
+            <!-- 动画场景 -->
+            <div id="scene">
+                <div id="bridge"></div>
+                <div id="fat-man">👤</div>
+                <div id="track"></div>
+                <div id="trolley" class="trolley-animation">🚋</div>
+                <div id="victims"></div> <!-- JS会填充 👤 x5 -->
+            </div>
+            
+            <!-- 倒计时 -->
+            <div id="timer-bar-container">
+                <div id="timer-bar"></div>
+            </div>
+            <div id="timer-text" class="my-4">10.0</div>
+            
+            <p class="text-lg font-semibold text-gray-800 my-4" id="dilemma-text">
+                <!-- JS 会在这里填充情景 A 或 B -->
+            </p>
+            
+            <!-- 决策按钮 -->
+            <div class="grid grid-cols-2 gap-4 mt-6">
+                <button id="push-button" class="choice-button w-full bg-red-600 text-white font-bold py-4 px-6 rounded-lg shadow-lg hover:bg-red-700">
+                    Push the stranger
+                </button>
+                <button id="dont-push-button" class="choice-button w-full bg-blue-600 text-white font-bold py-4 px-6 rounded-lg shadow-lg hover:bg-blue-700">
+                    Do not push
+                </button>
+            </div>
+        </div>
+        
+        <!-- 2. 判断页面 (隐藏) -->
+        <div id="judgment-screen" class="hidden">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Thank you for your decision</h2>
+            <p class="text-gray-600 mb-6">Your choice before the timer ended was: <span id="action-taken" class="font-bold"></span></p>
+            
+            <p class="text-left text-gray-700 text-lg leading-relaxed bg-gray-50 p-6 rounded-lg border border-gray-200" id="scenario-text-static">
+                <!-- JS 会在这里填充静态的情景 A 或 B -->
+            </p>
+            
+            <form id="scenario-form" class="mt-8">
+                <label class="block text-lg font-semibold text-gray-800 mb-4">
+                    Now, please reflect: Do you think pushing the stranger is morally permissible?
+                </label>
+                <div class="flex justify-between max-w-md mx-auto mb-6">
+                    <div class="text-left"><span class="font-bold text-red-600">1</span><br>Not permissible at all</div>
+                    <div class="text-right"><span class="font-bold text-green-600">7</span><br>Completely permissible</div>
+                </div>
+                <div class="flex justify-center space-x-2 sm:space-x-4">
+                    <input type="radio" id="likert-1" name="likert_scale" value="1" required><label for="likert-1">1</label>
+                    <input type="radio" id="likert-2" name="likert_scale" value="2"><label for="likert-2">2</label>
+                    <input type="radio" id="likert-3" name="likert_scale" value="3"><label for="likert-3">3</label>
+                    <input type="radio" id="likert-4" name="likert_scale" value="4"><label for="likert-4">4</label>
+                    <input type="radio" id="likert-5" name="likert_scale" value="5"><label for="likert-5">5</label>
+                    <input type="radio" id="likert-6" name="likert_scale" value="6"><label for="likert-6">6</label>
+                    <input type="radio" id="likert-7" name="likert_scale" value="7"><label for="likert-7">7</label>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:bg-blue-700 transition-transform transform hover:scale-105 mt-10">
+                    Next step
+                </button>
+            </form>
+        </div>
+
+        <!-- 3. 人口统计信息页面 (隐藏) -->
+        <div id="demographics-screen" class="hidden">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Final two questions</h2>
+            <form id="demographics-form">
+                <div class="mb-4 text-left">
+                    <label for="age" class="block text-gray-700 font-semibold mb-2">Your Age:</label>
+                    <input type="number" id="age" name="age" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., 25" required>
+                </div>
+                <div class="mb-8 text-left">
+                    <label for="gender" class="block text-gray-700 font-semibold mb-2">Your Gender:</label>
+                    <select id="gender" name="gender" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <option value="" disabled selected>-- Please select --</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                        <option value="Prefer_not_to_say">Prefer not to say</option>
+                    </select>
+                </div>
+                <button type="submit" id="submit-all" class="w-full bg-green-600 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:bg-green-700 transition-transform transform hover:scale-105">
+                    Submit and finish experiment
+                </button>
+            </form>
+        </div>
+
+        <!-- 4. 加载中... -->
+        <div id="loading-screen" class="hidden">
+            <div class="flex justify-center items-center h-48">
+                <div class="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-24 w-24"></div>
+            </div>
+            <p class="text-gray-600">Submitting your data...</p>
+        </div>
+
+        <!-- 5. 感谢页面 (隐藏) -->
+        <div id="thank-you-screen" class="hidden">
+            <h1 class="text-3xl font-bold text-green-600 mb-4">Thank you for participating!</h1>
+            <p class="text-gray-700 text-lg">Your response has been recorded.</p>
+            <p class="text-gray-500 mt-6">You can now safely close this page.</p>
+        </div>
+
+        <!-- 错误提示 (隐藏) -->
+        <div id="error-message" class="hidden p-4 bg-red-100 text-red-700 border border-red-300 rounded-lg">
+            <!-- JS 会在这里填充错误信息 -->
+        </div>
+    </div>
+
+    <script>
+        // ------------------------------------------------------------------
+        // 第1步：把你的 Google Apps Script URL 粘贴在这里！
+        // ------------------------------------------------------------------
+        //
+        // 教程请看 README.md 文件。
+        //
+        // ------------------------------------------------------------------
+        const webAppUrl = 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE'; 
+        // ------------------------------------------------------------------
+
+
+        // 实验情景
+        const scenarios = {
+            A: {
+                group: 'A (Standard)',
+                victims: '5 strangers',
+                victims_emoji: '👤👤👤👤👤',
+                text: 'A runaway trolley is about to hit 5 strangers on the track. You are on a footbridge next to a large stranger. You have 10 seconds to decide. Will you push this stranger to save the 5 strangers?'
+            },
+            B: {
+                group: 'B (Emotional)',
+                victims: '5 of your family members',
+                victims_emoji: '👨‍👩‍👧‍👦❤️',
+                text: 'A runaway trolley is about to hit 5 of your family members on the track. You are on a footbridge next to a large stranger. You have 10 seconds to decide. Will you push this stranger to save your 5 family members?'
+            }
+        };
+
+        // 存储被试者的数据
+        let participantData = {
+            group: '',
+            action: '', // 'Push', 'Dont_Push', 'TIMEOUT'
+            likertScore: null,
+            age: null,
+            gender: null
+        };
+
+        // 全局计时器变量
+        let timerInterval;
+        let timerTimeout;
+
+        // 获取所有页面元素
+        const container = document.getElementById('experiment-container');
+        const welcomeScreen = document.getElementById('welcome-screen');
+        const dilemmaScreen = document.getElementById('dilemma-screen');
+        const judgmentScreen = document.getElementById('judgment-screen');
+        const demographicsScreen = document.getElementById('demographics-screen');
+        const loadingScreen = document.getElementById('loading-screen');
+        const thankYouScreen = document.getElementById('thank-you-screen');
+        const errorMessage = document.getElementById('error-message');
+
+        const scenarioForm = document.getElementById('scenario-form');
+        const demographicsForm = document.getElementById('demographics-form');
+        const timerText = document.getElementById('timer-text');
+
+        // 切换页面的函数
+        function showScreen(screen) {
+            // 隐藏所有
+            [welcomeScreen, dilemmaScreen, judgmentScreen, demographicsScreen, loadingScreen, thankYouScreen].forEach(s => s.classList.add('hidden'));
+            // 显示目标
+            screen.classList.remove('hidden');
+        }
+
+        // 1. 点击“开始”
+        document.getElementById('start-button').addEventListener('click', () => {
+            // 随机分配 A 组或 B 组
+            const group = Math.random() < 0.5 ? 'A' : 'B';
+            const currentScenario = scenarios[group];
+            participantData.group = currentScenario.group;
+            
+            // 填充情景
+            document.getElementById('victims').innerText = currentScenario.victims_emoji;
+            document.getElementById('dilemma-text').innerText = currentScenario.text;
+            document.getElementById('scenario-text-static').innerText = currentScenario.text;
+
+            // 启动动画和计时器
+            startDilemma();
+            showScreen(dilemmaScreen);
+        });
+
+        // 2. 启动抉择
+        function startDilemma() {
+            // 重置动画 (通过重新添加 class)
+            const trolley = document.getElementById('trolley');
+            const timerBar = document.getElementById('timer-bar');
+            trolley.style.animation = 'none';
+            timerBar.style.animation = 'none';
+            
+            // 强制浏览器重新渲染
+            trolley.offsetHeight; 
+            timerBar.offsetHeight;
+
+            trolley.style.animation = 'moveTrolley 10s linear forwards';
+            timerBar.style.animation = 'countdownBar 10s linear forwards';
+
+            // 启动倒计时文字
+            let timeLeft = 10.0;
+            timerText.style.color = '#22c55e'; // 绿色开始
+            timerText.innerText = timeLeft.toFixed(1);
+
+            timerInterval = setInterval(() => {
+                timeLeft -= 0.1;
+                timerText.innerText = timeLeft.toFixed(1);
+                if (timeLeft <= 5.0) {
+                    timerText.style.color = '#f59e0b'; // 变黄
+                }
+                if (timeLeft <= 2.0) {
+                    timerText.style.color = '#ef4444'; // 变红
+                }
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                }
+            }, 100);
+
+            // 设置 10 秒后自动跳转
+            timerTimeout = setTimeout(() => {
+                handleChoice('TIMEOUT');
+            }, 10000);
+        }
+
+        // 3. 绑定抉择按钮
+        document.getElementById('push-button').addEventListener('click', () => {
+            handleChoice('Push');
+        });
+
+        document.getElementById('dont-push-button').addEventListener('click', () => {
+            handleChoice('Dont_Push');
+        });
+
+        // 4. 处理抉择
+        function handleChoice(action) {
+            // 停止计时器
+            clearInterval(timerInterval);
+            clearTimeout(timerTimeout);
+
+            participantData.action = action;
+            
+            // 显示用户选择了什么
+            let actionText = '';
+            if (action === 'Push') actionText = '[Push the stranger]';
+            else if (action === 'Dont_Push') actionText = '[Do not push]';
+            else actionText = '[No choice was made in time]';
+            document.getElementById('action-taken').innerText = actionText;
+
+            // 停止动画
+            document.getElementById('trolley').style.animationPlayState = 'paused';
+            document.getElementById('timer-bar').style.animationPlayState = 'paused';
+            
+            // 显示判断页面
+            showScreen(judgmentScreen);
+        }
+
+        // 5. 提交判断 (李克特量表)
+        scenarioForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const selectedLikert = document.querySelector('input[name="likert_scale"]:checked');
+            
+            if (!selectedLikert) {
+                showError("Please select a rating (1-7)");
+                return;
+            }
+            
+            participantData.likertScore = selectedLikert.value;
+            showScreen(demographicsScreen);
+            hideError();
+        });
+
+        // 6. 提交人口信息并发送数据
+        demographicsForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            if (webAppUrl === 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
+                showError("Experiment is not configured. Please contact the researcher. (Error: webAppUrl is not set)");
+                return;
+            }
+
+            participantData.age = document.getElementById('age').value;
+            participantData.gender = document.getElementById('gender').value;
+
+            showScreen(loadingScreen);
+            hideError();
+
+            // 发送数据
+            fetch(webAppUrl, {
+                method: 'POST',
+                mode: 'no-cors', 
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(participantData)
+            })
+            .finally(() => {
+                // 无论成功或失败 (no-cors 总是会进 'catch' 或 'finally')
+                // 我们都假设它成功了，并给 Google Sheet 一点时间
+                setTimeout(() => {
+                    showScreen(thankYouScreen);
+                }, 1500); 
+            });
+        });
+
+        function showError(message) {
+            errorMessage.innerText = message;
+            errorMessage.classList.remove('hidden');
+        }
+
+        function hideError() {
+            errorMessage.classList.add('hidden');
+        }
+
+    </script>
+</body>
+</html>
